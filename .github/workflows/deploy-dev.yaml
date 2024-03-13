@@ -7,10 +7,6 @@ jobs:
   deploy_ar:
     runs-on: ubuntu-latest
     if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
-    environment: dev
-    defaults:
-      run:
-        working-directory: ar
     steps:
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@v2

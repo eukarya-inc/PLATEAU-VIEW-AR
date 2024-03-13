@@ -5,7 +5,6 @@ jobs:
   deploy_ar:
     runs-on: ubuntu-latest
     if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-3.0'
-    environment: prod
     defaults:
       run:
         working-directory: ar
