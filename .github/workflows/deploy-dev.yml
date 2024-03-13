@@ -26,12 +26,10 @@ jobs:
 
       - uses: google-github-actions/auth@v2
         with:
+          service_account: ${{ secrets.GCP_SA }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
-      - name: Deploy
-        uses: ./.github/actions/deploy-to-gcs
-        with:
-          bucket: ${{ vars.GCS_DEST }}
+      - run: gsutil -m -h "Cache-Control:no-store" rsync -dr dist gs://${{ vars.GCS_DEST }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
