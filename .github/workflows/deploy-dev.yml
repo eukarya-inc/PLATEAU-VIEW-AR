@@ -29,6 +29,8 @@ jobs:
           service_account: ${{ secrets.GCP_SA }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
+      - uses: google-github-actions/setup-gcloud@v2
+
       - run: gsutil -m -h "Cache-Control:no-store" rsync -dr dist gs://${{ vars.GCS_DEST }}
 
       - name: Upload artifacts
