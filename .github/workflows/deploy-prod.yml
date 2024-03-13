@@ -1,0 +1,29 @@
+name: ⭐️ Deploy production
+on:
+  workflow_dispatch:
+jobs:
+  deploy_ar:
+    runs-on: ubuntu-latest
+    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-3.0'
+    environment: prod
+    defaults:
+      run:
+        working-directory: ar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download web artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          branch: main
+          workflow: deploy-ar-dev.yml
+          name: ar
+          path: ar/dist
+          check_artifacts: true
+          search_artifacts: true
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-to-gcs
+        with:
+          dest: ${{ vars.GCS_DEST }}
+          workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
