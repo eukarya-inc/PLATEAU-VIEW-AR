@@ -25,5 +25,5 @@ jobs:
       - name: Deploy
         uses: ./.github/actions/deploy-to-gcs
         with:
-          dest: ${{ vars.GCS_DEST }}
-          workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          bucket: ${{ vars.GCS_DEST }}
+          workload-identity-provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
