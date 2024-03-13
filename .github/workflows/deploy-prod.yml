@@ -30,3 +30,4 @@ jobs:
         uses: ./.github/actions/deploy-to-gcs
         with:
           bucket: ${{ vars.GCS_DEST }}
+ 
