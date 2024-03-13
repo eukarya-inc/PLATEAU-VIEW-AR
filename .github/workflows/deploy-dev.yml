@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
     environment: dev
+    permissions:
+      contents: read # To checkout
+      id-token: write # To authenticate with GCP using OIDC
     steps:
       - uses: actions/checkout@v4
 
