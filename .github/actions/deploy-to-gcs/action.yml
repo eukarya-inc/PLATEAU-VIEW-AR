@@ -12,5 +12,5 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: gsutil -m -h "Cache-Control:no-store" rsync -dr ${{ inputs.path }} ${{ inputs.bucket }}
+    - run: gsutil -m -h "Cache-Control:no-store" rsync -dr ${{ inputs.path }} gs://${{ inputs.bucket }}
       shell: bash
