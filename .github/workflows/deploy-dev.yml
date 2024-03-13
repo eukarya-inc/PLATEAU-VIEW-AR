@@ -21,7 +21,8 @@ jobs:
           path: dist
           check_artifacts: true
           search_artifacts: true
-      - name: Run Terraform apply
+
+      - name: Deploy
         uses: ./.github/actions/deploy-to-gcs
         with:
           dest: ${{ vars.GCS_DEST }}
