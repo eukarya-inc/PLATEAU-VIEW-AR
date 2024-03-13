@@ -9,6 +9,8 @@ jobs:
     if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
     environment: dev
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@v2
         with:
