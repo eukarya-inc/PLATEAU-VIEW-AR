@@ -19,5 +19,5 @@ runs:
       with:
         workload_identity_provider: ${{ inputs.workload_identity_provider }}
 
-    - run: gsutil -m -h "Cache-Control:no-store" rsync -dr ${{ inputs.path }} ${{ inputs.bucket }}
+    - run: gsutil -m -h "Cache-Control:no-store" rsync -dr ${{ inputs.path }} gs://${{ inputs.bucket }}
       shell: bash
