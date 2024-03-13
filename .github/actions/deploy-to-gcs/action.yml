@@ -8,7 +8,7 @@ inputs:
     description: Path of the artifacts to deploy
     required: false
     default: dist
-  workload_identity_provider:
+  workload-identity-provider:
     description: The workload identity provider to use
     required: true
 
@@ -17,7 +17,7 @@ runs:
   steps:
     - uses: google-github-actions/auth@v2
       with:
-        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
 
     - run: gsutil -m -h "Cache-Control:no-store" rsync -dr ${{ inputs.path }} ${{ inputs.bucket }}
       shell: bash
