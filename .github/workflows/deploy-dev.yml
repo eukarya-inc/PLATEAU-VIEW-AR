@@ -1,4 +1,4 @@
-name: ⭐️ Deploy dev
+name: ⭐️ Deploy development
 on:
   workflow_dispatch:
   repository_dispatch:
