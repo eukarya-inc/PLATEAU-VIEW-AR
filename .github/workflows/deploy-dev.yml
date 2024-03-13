@@ -21,11 +21,14 @@ jobs:
           check_artifacts: true
           search_artifacts: true
 
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
       - name: Deploy
         uses: ./.github/actions/deploy-to-gcs
         with:
           bucket: ${{ vars.GCS_DEST }}
-          workload-identity-provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
