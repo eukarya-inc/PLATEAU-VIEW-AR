@@ -1,0 +1,34 @@
+name: ⭐️ Deploy dev
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [deploy-dev]
+jobs:
+  deploy_ar:
+    runs-on: ubuntu-latest
+    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
+    environment: dev
+    defaults:
+      run:
+        working-directory: ar
+    steps:
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          branch: main
+          workflow: ci.yml
+          name: ar
+          path: dist
+          check_artifacts: true
+          search_artifacts: true
+      - name: Run Terraform apply
+        uses: ./.github/actions/deploy-to-gcs
+        with:
+          dest: ${{ vars.GCS_DEST }}
+          workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ar
+          path: dist/**/*
