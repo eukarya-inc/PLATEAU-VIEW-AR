@@ -4,7 +4,7 @@ on:
 jobs:
   deploy_ar:
     runs-on: ubuntu-latest
-    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-3.0'
+    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
     environment: prod
     permissions:
       contents: read # To checkout
