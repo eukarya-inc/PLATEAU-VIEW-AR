@@ -3,25 +3,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    outputs:
-      deploy: ${{ steps.check.outputs.deploy }}
-    environment: prod
-    steps:
-      - name: Check if deploy is needed
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "deploy=true" >> $GITHUB_OUTPUT
-          fi
-
   deploy_ar:
     runs-on: ubuntu-latest
+    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
     environment: prod
-    needs: check
-    if: ${{ needs.check.outputs.deploy == 'deploy' }}
     permissions:
       contents: read  # To checkout
       id-token: write # To authenticate with GCP using OIDC
@@ -40,7 +25,8 @@ jobs:
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
