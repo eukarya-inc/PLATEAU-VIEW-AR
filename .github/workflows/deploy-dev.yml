@@ -3,11 +3,26 @@ on:
   workflow_dispatch:
   repository_dispatch:
     types: [deploy-dev]
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    environment: dev
+    steps:
+      - name: Check if deploy is needed
+        id: check
+        run: |
+          if [ -n "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+          end
+
   deploy_ar:
     runs-on: ubuntu-latest
-    if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
     environment: dev
+    needs: check
+    if: ${{ needs.check.outputs.deploy == 'true' }}
     permissions:
       contents: read  # To checkout
       id-token: write # To authenticate with GCP using OIDC
