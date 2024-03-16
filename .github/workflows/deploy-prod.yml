@@ -4,10 +4,10 @@ on:
 jobs:
   deploy_ar:
     runs-on: ubuntu-latest
-    if: github.event.repository.full_name == 'eukarya-inc/PLATEAU-VIEW-AR'
+    if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
     environment: prod
     permissions:
-      contents: read # To checkout
+      contents: read  # To checkout
       id-token: write # To authenticate with GCP using OIDC
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +24,7 @@ jobs:
 
       - uses: google-github-actions/auth@v2
         with:
-          service_account: ${{ secrets.GCP_SA }}
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
