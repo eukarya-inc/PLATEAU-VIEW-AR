@@ -15,7 +15,7 @@ jobs:
         run: |
           if [ -n "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
             echo "deploy=true" >> $GITHUB_OUTPUT
-          end
+          fi
 
   deploy_ar:
     runs-on: ubuntu-latest
