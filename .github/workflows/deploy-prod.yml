@@ -1,6 +1,7 @@
-name: ⭐️ Deploy production
+name: Deploy production
 on:
   workflow_dispatch:
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -10,6 +11,7 @@ jobs:
     steps:
       - name: Check if deploy is needed
         id: check
+        shell: bash
         run: |
           if [ -n "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
             echo "deploy=true" >> $GITHUB_OUTPUT

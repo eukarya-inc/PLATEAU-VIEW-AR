@@ -1,4 +1,4 @@
-name: ⭐️ Deploy development
+name: Deploy development
 on:
   workflow_dispatch:
   repository_dispatch:
@@ -10,9 +10,11 @@ jobs:
     outputs:
       deploy: ${{ steps.check.outputs.deploy }}
     environment: dev
+    if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER == '' }}
     steps:
       - name: Check if deploy is needed
         id: check
+        shell: bash
         run: |
           if [ -n "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
             echo "deploy=true" >> $GITHUB_OUTPUT

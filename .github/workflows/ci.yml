@@ -5,7 +5,7 @@ on:
       - main
   pull_request:
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-node@v4
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
       - uses: actions/cache@v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
@@ -31,11 +31,6 @@ jobs:
         with:
           name: ar
           path: dist/**/*
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
       - name: Dispatch deployment
         uses: peter-evans/repository-dispatch@v2
         with:
