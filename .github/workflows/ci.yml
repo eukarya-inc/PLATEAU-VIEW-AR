@@ -33,6 +33,6 @@ jobs:
           name: ar
           path: dist/**/*
       - name: Deploy dev
-        uses: ./.github/actions/deploy-dev.yml
+        uses: ./.github/workflows/deploy-dev.yml
         with:
           use_local: true

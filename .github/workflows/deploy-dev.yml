@@ -39,7 +39,7 @@ jobs:
 
       - uses: google-github-actions/auth@v2
         with:
-          service_account: ${{ secrets.GCP_SA }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - uses: google-github-actions/setup-gcloud@v2
