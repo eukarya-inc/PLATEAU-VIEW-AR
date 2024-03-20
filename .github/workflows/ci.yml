@@ -24,7 +24,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
       - name: Upload artifacts
@@ -32,7 +32,7 @@ jobs:
         with:
           name: ar
           path: dist/**/*
-      - name: Dispatch deployment
-        uses: peter-evans/repository-dispatch@v2
+      - name: Deploy dev
+        uses: ./.github/actions/deploy-dev.yml
         with:
-          event-type: deploy-dev
+          use_local: true
