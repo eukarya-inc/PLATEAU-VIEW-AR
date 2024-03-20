@@ -32,7 +32,9 @@ jobs:
         with:
           name: ar
           path: dist/**/*
-      - name: Deploy dev
-        uses: ./.github/workflows/deploy-dev.yml
-        with:
-          use_local: true
+
+  deploy:
+    needs: ci
+    uses: ./.github/workflows/deploy-dev.yml
+    with:
+      use_local: true
