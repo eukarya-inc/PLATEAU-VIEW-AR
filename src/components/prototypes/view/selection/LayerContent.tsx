@@ -30,8 +30,13 @@ import { DatasetDialog } from "../ui-containers/DatasetDialog";
 // import { LayerHeatmapSection } from "./LayerHeatmapSection";
 
 import { LayerHiddenFeaturesSection } from "./LayerHiddenFeaturesSection";
+import { LayerOpacitySection } from "./LayerOpacitySection";
 // import { LayerShowWireframeSection } from "./LayerShowWireframeSection";
 // import { LayerSketchSection } from "./LayerSketchSection";
+
+import { BuildingIcon } from "../../ui-components";
+import { buildingConcentratedAtom } from "../states/ar";
+import { updateOcclusion } from "../../../../ar";
 
 export interface LayerContentProps<T extends LayerType> {
   values: (SelectionGroup & {
@@ -102,6 +107,13 @@ export function LayerContent<T extends LayerType>({
     });
   }, [values, remove]);
 
+  const [buildingConcentrated, setBuildingConcentrated] = useAtom(buildingConcentratedAtom);
+  const handleBuildingConcentration = useCallback(() => {
+    setBuildingConcentrated(!buildingConcentrated);
+    if (buildingConcentrated === undefined) { return; }
+    updateOcclusion(buildingConcentrated);
+  }, [buildingConcentrated]);
+
   const components = useMemo(() => {
     const result: { [K in ComponentAtom["type"]]?: ComponentAtom["atom"][] } = {};
     for (const layer of values) {
@@ -156,14 +168,14 @@ export function LayerContent<T extends LayerType>({
                   {hidden ? <VisibilityOffIcon /> : <VisibilityOnIcon />}
                 </IconButton>
               </Tooltip>
-              <Tooltip title="移動">
+              {/* <Tooltip title="移動">
                 <span>
                   <IconButton aria-label="移動" disabled={layerId == null} onClick={handleMove}>
                     <AddressIcon />
                   </IconButton>
                 </span>
-              </Tooltip>
-              {buildingLayers.length !== 0 && (
+              </Tooltip> */}
+              {/* {buildingLayers.length !== 0 && (
                 <Tooltip title="検索">
                   <IconButton
                     {...bindTrigger(buildingSearchPanelState)}
@@ -172,7 +184,7 @@ export function LayerContent<T extends LayerType>({
                     <SearchIcon />
                   </IconButton>
                 </Tooltip>
-              )}
+              )} */}
               <Tooltip title="出典">
                 <span>
                   <IconButton
@@ -188,17 +200,26 @@ export function LayerContent<T extends LayerType>({
                   <TrashIcon />
                 </IconButton>
               </Tooltip>
+              <Tooltip title="選択建築物に注目">      
+              <IconButton
+                aria-label="選択中のビルのみ表示"
+                onClick={handleBuildingConcentration}
+              >
+                <BuildingIcon />
+              </IconButton>
+              </Tooltip>
             </>
           }
           onClose={handleClose}
         />
         <LayerHiddenFeaturesSection layers={values} />
-        <SwitchDataset layers={values} />
-        <SwitchGroup layers={values} />
+        {/* <SwitchDataset layers={values} /> */}
+        {/* <SwitchGroup layers={values} /> */}
         {/* <LayerHeatmapSection layers={values} /> */}
-        {components.map(([type, atoms]) => (
+          <LayerOpacitySection layers={values}/>
+        {/* {components.map(([type, atoms]) => (
           <Fields key={type} layers={values} type={type} atoms={atoms} />
-        ))}
+        ))} */}
         {/* <InspectorItem> */}
         {/* <LayerShowWireframeSection layers={values} />
         <LayerSketchSection layers={values} /> */}

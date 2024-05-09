@@ -11,7 +11,7 @@ export const compassBiasAtom = atomWithStorageValidation({
 
 export const fovPiOverAtom = atomWithStorageValidation({
   key: "fovPiOver",
-  initialValue: 1,
+  initialValue: 3,
   validate: isNumber,
 });
 
@@ -23,6 +23,8 @@ export const fovPiOverAtom = atomWithStorageValidation({
 
 export const cesiumLoadedAtom = atom(false);
 export const arStartedAtom = atom(false);
+
+export const buildingConcentratedAtom = atom(false);
 
 type Feature = {
   // フィーチャーオブジェクトの型定義

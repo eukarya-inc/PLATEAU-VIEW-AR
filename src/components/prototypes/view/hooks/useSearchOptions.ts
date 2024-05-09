@@ -130,10 +130,11 @@ function useBuildingSearchOption({
       }
       return featureIndices.flatMap(([id, featureIndex]) => {
         const fs =
-          window.reearth?.layers?.findFeaturesByIds?.(
-            featureIndex.layerId,
-            featureIndex.featureIds
-          ) ?? [];
+          // window.reearth?.layers?.findFeaturesByIds?.(
+          //   featureIndex.layerId,
+          //   featureIndex.featureIds
+          // ) ?? [];
+          [];
         const addedIds: string[] = [];
         return fs.reduce<BuildingSearchOption[]>((res, f) => {
           if (f?.properties?.["名称"] && !addedIds.includes(f.id)) {
@@ -162,6 +163,9 @@ export interface SearchOptions {
   select: (option: SearchOption) => void;
 }
 
+// SearchAutocompletePanelで使用されている
+// 返り値として、現在選択されているものを詰め込む操作を行うためのselectを返している。
+// SearchAutocompletePanelにおいて、useSearchOptionsを使用する際に、selectを叩いてあげればよい
 export function useSearchOptions(options?: SearchOptionsParams): SearchOptions {
   const datasets = useDatasetSearchOptions(options);
   const buildings = useBuildingSearchOption(options);
@@ -169,6 +173,9 @@ export function useSearchOptions(options?: SearchOptionsParams): SearchOptions {
   const templates = useAtomValue(templatesAtom);
 
   const addLayer = useSetAtom(addLayerAtom);
+  // selectコールバックで建物が選択されていたらscreenSpaceSelectionAtomにvalueを保存
+  // screenSpaceSelectionAtomはselectionAtomで参照されており、selectionAtomは更にselectionGroupsAtomで参照されているため、
+  // 巡り巡って、selectionGroupsAtomを用いるSelectionPanelのcontentsに利用される形で表示される。
   const setScreenSpaceSelection = useSetAtom(screenSpaceSelectionAtom);
   const select = useCallback(
     (option: SearchOption) => {
@@ -212,17 +219,17 @@ export function useSearchOptions(options?: SearchOptionsParams): SearchOptions {
           const buildingOption = option as BuildingSearchOption;
           invariant(buildingOption.id);
           // TODO: Implement flyTo by `_x` and `_y` properties which are embeded in feature.
-          setScreenSpaceSelection([
-            {
-              type: "TILESET_FEATURE",
-              value: {
-                layerId: buildingOption.featureIndex.layerId,
-                featureIndex: buildingOption.featureIndex,
-                key: buildingOption.id,
-                datasetId: buildingOption.datasetId,
-              },
-            },
-          ]);
+          // setScreenSpaceSelection([
+          //   {
+          //     type: "TILESET_FEATURE",
+          //     value: {
+          //       layerId: buildingOption.featureIndex.layerId,
+          //       featureIndex: buildingOption.featureIndex,
+          //       key: buildingOption.id,
+          //       datasetId: buildingOption.datasetId,
+          //     },
+          //   },
+          // ]);
           break;
         }
       }

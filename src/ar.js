@@ -1,6 +1,8 @@
 // import * as Cesium from "cesium";
 // import "cesium/Build/Cesium/Widgets/widgets.css";
 
+// import { createAmbientOcclusionStage } from "./libs/cesium-hbao/src/createAmbientOcclusionStage";
+
 // CDNの場合はここにwindowオブジェクトからCesiumを入れる
 let Cesium;
 
@@ -12,6 +14,7 @@ const viewModel = {
 let cesiumViewer;
 let cesiumCamera;
 let postProcessStages;
+let ambientOcclusionStageComposite;
 let occlusionStage;
 let silhouetteStage;
 let selectedFeatures = [];
@@ -152,6 +155,23 @@ function destroyCesiumViewer() {
   console.log("viewer destroyed");
 }
 
+// AmbientOcclusionシェーダーのポストプロセスステージコンポジットをセットアップ
+// function setupAmbientOcclusionStage() {
+//   ambientOcclusionStageComposite = postProcessStages.add(
+//     // options
+//     // https://github.com/takram-design-engineering/plateau-view/blob/6c8225d626cd8085e5d10ffe8980837814c333b0/libs/view/src/states/graphics.ts#L150-L206
+//     // https://github.com/takram-design-engineering/plateau-view/blob/6c8225d626cd8085e5d10ffe8980837814c333b0/libs/view/src/states/graphics.ts#L60-L125
+//     createAmbientOcclusionStage(
+//       'plateau', // prefix
+//       1, // textureScale
+//       8, // directions
+//       8, // steps
+//       true // denoise
+//     )
+//   );
+//   ambientOcclusionStageComposite.enabled = true;
+// }
+
 // 輪郭表示シェーダーのポストプロセスステージをセットアップ
 function setupSilhouetteStage() {
   const edgeDetectionStage =
@@ -191,6 +211,7 @@ function setupOcclusionStage() {
       //clearColor: Cesium.Color.TRANSPARENT,
     })
   );
+  occlusionStage.enabled = false;
   occlusionStage.selected = [];
 }
 
@@ -201,8 +222,9 @@ function setupCesium() {
   oldDirection = new Cesium.Cartesian3();
   oldUp = new Cesium.Cartesian3();
   setupCesiumViewer();
+  // setupAmbientOcclusionStage();
   setupSilhouetteStage();
-  // setupOcclusionStage();
+  setupOcclusionStage();
 }
 
 // Cesium系クリーンアップ
@@ -211,8 +233,8 @@ function cleanUpCesium() {
 }
 
 // デバイスカメラプレビューのセットアップ
-async function startDeviceCameraPreview() {
-  const devicCameraPreview = document.getElementById("device_camera_preview");
+function startDeviceCameraPreview() {
+  const deviceCameraPreview = document.getElementById("device_camera_preview");
 
   // TODO: onResizeイベントでdebounce
   const cameraWidth = window.innerWidth;
@@ -222,6 +244,7 @@ async function startDeviceCameraPreview() {
 
   const constraints = {
     audio: false,
+    // video: true,
     video: {
       // ここはあくまでカメラに要求する解像度を指定するオプションなので、この通りの解像度でフィードがくるわけではなく、要求した値に近い最適な解像度で返ってくる。
       // https://developer.mozilla.org/ja/docs/Web/API/MediaDevices/getUserMedia
@@ -232,20 +255,33 @@ async function startDeviceCameraPreview() {
     },
   };
 
-  try {
-    devicCameraPreview.srcObject =
-      await navigator.mediaDevices.getUserMedia(constraints);
-  } catch (err) {
-    // window.alert(window.isSecurityContext);
-    // window.alert(err.toString());
-    console.log(err.toString());
-  }
+  // try {
+  //   deviceCameraPreview.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
+  //   deviceCameraPreview.play();
+  // } catch (err) {
+  //   // window.alert(window.isSecurityContext);
+  //   // window.alert(err.toString());
+  //   console.log(err.toString());
+  // }
+
+  // iOSでは非同期処理でもasync/awaitを使用するとNotAllowedErrorになってしまう可能性があるので代わりにpromiseで行う
+  navigator.mediaDevices
+    .getUserMedia(constraints)
+    .then((stream) => {
+      deviceCameraPreview.srcObject = stream;
+      // deviceCameraPreview.play();
+      // deviceCameraPreview.play().catch(() => {});
+      // deviceCameraPreview.pause();
+    })
+    .catch((err) => {
+      console.log(err.toString());
+    });
 }
 
 // Cesiumのカメラ座標を更新
 function moveCesiumCamera(destination) {
   if (!destination) { return; }
-  // console.log(`camera moved: ${destination}`);
+  console.log(`camera moved: ${destination}`);
   cesiumCamera.setView({
     destination: destination,
     // orientation: isios ? oldHeadingPitchRoll : { direction: oldDirection, up: oldUp }
@@ -576,22 +612,28 @@ function orientationTrackingProcess(event) {
 }
 
 // ユーザーインタラクションハンドリング
-// TODO: オクルージョン表示中はタップ選択を無効化する
 function setupUserInput() {
   const handler = new Cesium.ScreenSpaceEventHandler(cesiumViewer.scene.canvas);
   handler.setInputAction(function onLeftClick(movement) {
-    const pickedFeature = cesiumViewer.scene.pick(movement.position);    
-    if (Cesium.defined(pickedFeature)) {
-      // selectedには3DTilesのFeatureをそのまま突っ込めるのでprimitiveにはアクセスしなくてよい
-      selectedFeatures = [pickedFeature];
-      silhouetteStage.selected = selectedFeatures;
-    } else {
-      selectedFeatures = [];
-      silhouetteStage.selected = [];
+    // オクルージョン表示していないときだけビルを選択可能
+    if (!occlusionStage.enabled) {
+      const pickedFeature = cesiumViewer.scene.pick(movement.position);    
+      if (Cesium.defined(pickedFeature)) {
+        // console.log("pickedFeature: ", pickedFeature);
+        // selectedには3DTilesのFeatureをそのまま突っ込めるのでprimitiveにはアクセスしなくてよい
+        selectedFeatures = [pickedFeature];
+        silhouetteStage.selected = selectedFeatures;
+      } else {
+        selectedFeatures = [];
+        silhouetteStage.selected = [];
+      }
     }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 }
 
+// iOSのIMUパーミッションをユーザーインタラクショントリガで取る
+// 直接ユーザータップのイベントでrequestしないと無効になるため、ARView側のボタンで発動させる
+// 必ずhttpsで接続すること (httpsでないと必ずdeniedになる)
 export let isImuPermissionGranted = null;
 export function requestImuPermission() {
   DeviceOrientationEvent.requestPermission()
@@ -641,13 +683,7 @@ export function startAR() {
   startDeviceCameraPreview();
   startGpsTracking();
   // iOSではパーミッション取ってからIMUの値を読む
-  if (isios) {
-    if (!isImuPermissionGranted) {
-      // window.alert("ARを正常に動作させるためジャイロセンサーの使用を許可してください");
-      // 直接ユーザータップのイベントでrequestしないと無効になるため、ARView側のボタンで発動させる
-      // requestImuPermission();
-    }
-  } else {
+  if (!isios) {
     startOrientationTracking();
   }
 }
@@ -667,16 +703,15 @@ export async function resetTileset(tilesetUrls) {
   // cesiumViewer.scene.primitives.removeAll();
 
   console.log("oldTilesetUrls: ", oldTilesetUrls);
-  console.log("tilesetUrls: ", tilesetUrls);
+  console.log("newTilesetUrls: ", tilesetUrls);
 
   // 削除されたtilesetをremove
   const removedUrls = oldTilesetUrls.filter(x => !tilesetUrls.includes(x));
   console.log("removedUrls: ", removedUrls);
   const removingPrimitives = tilesets.filter(tileset => removedUrls.includes(tileset.url));
-  console.log("removingPrimitives: ", removingPrimitives);
+  // console.log("removingPrimitives: ", removingPrimitives);
   removingPrimitives.map(removingPrimitive => {
-    // TODO: このremoveが上手く動いていない
-    cesiumViewer.scene.primitives.remove(removingPrimitive);
+    cesiumViewer.scene.primitives.remove(removingPrimitive.primitive);
   });
   tilesets = tilesets.filter(tileset => !removedUrls.includes(tileset.url));
 
@@ -698,7 +733,7 @@ export async function resetTileset(tilesetUrls) {
   // 郡山市LOD2
   // "https://assets.cms.plateau.reearth.io/assets/0b/095119-b1e9-48c0-b5bd-0b18518e5a36/07203_koriyama-shi_2020_3dtiles_6_op_bldg_lod2/tileset.json",
 
-  addedUrls.map(async tilesetUrl => {
+  return await Promise.all(addedUrls.map(async tilesetUrl => {
     // console.log(tilesetUrl);
     try {
       // https://cesium.com/learn/cesiumjs/ref-doc/Cesium3DTileset.html
@@ -709,6 +744,7 @@ export async function resetTileset(tilesetUrls) {
           //debugShowBoundingVolume: true, // ローカルのファイルシステムから実行している場合はエラーが出る
           //debugShowContentBoundingVolume: true
           //customShader: customShader // ここでカスタムシェーダーを渡す https://cesium.com/learn/cesiumjs/ref-doc/CustomShader.html
+          cacheBytes: Infinity,
         }
       );
       // 3DTiles専用のスタイルを作成
@@ -720,28 +756,46 @@ export async function resetTileset(tilesetUrls) {
       // plateauTileset.style = style;
   
       console.log("Success loading tileset");
-      tilesets.push({url: tilesetUrl, primitive: plateauTileset});
+      const result = {url: tilesetUrl, primitive: plateauTileset};
+      tilesets.push(result);
   
       cesiumViewer.scene.primitives.add(plateauTileset);
-      cesiumViewer.flyTo(plateauTileset);
+      plateauTileset.initialTilesLoaded.addEventListener(() => {
+        cesiumViewer.flyTo(plateauTileset);
+      })
+      return result;
     } catch (error) {
       console.log(`Error loading tileset: ${error}`);
     }
+  }).filter(Boolean)).finally(() => {
+    oldTilesetUrls = tilesetUrls;
+    // console.log("tilesets: ", tilesets);
   });
-
-  oldTilesetUrls = tilesetUrls;
-  console.log("tilesets: ", tilesets);
 }
 
 // オクルージョン表示を更新
 export function updateOcclusion(shouldHideOtherBldgs) {
-  if (Boolean(shouldHideOtherBldgs)) {
+  if (silhouetteStage === undefined || occlusionStage === undefined) { return; }
+  if (shouldHideOtherBldgs) {
+    // オクルージョン表示にするときは
+    // ビル選択シルエットを非表示とし
+    silhouetteStage.selected = [];
     silhouetteStage.enabled = false;
-    occlusionStage.selected = selectedFeatures;
+    // オクルージョンシェーダを有効とする
+    // PostProcessStageのselectedを新しい配列で置き換えてしまうと
+    // シェーダのczm_selected()関数がboolを返さずクラッシュする問題があるので
+    // selectedを代入で置き換えずにpushして対応
+    selectedFeatures.map(feature => {
+      occlusionStage.selected.push(feature);
+    });
     occlusionStage.enabled = true;
   } else {
+    // オクルージョン表示しないときは
+    // オクルージョンシェーダを無効とし
     occlusionStage.enabled = false;
     occlusionStage.selected = [];
+    // ビル選択シルエットを表示する
+    silhouetteStage.selected = selectedFeatures;
     silhouetteStage.enabled = true;
   }
 }
@@ -756,6 +810,5 @@ export function updateFov(fovPiOver) {
 // コンパス手動調整用のバイアスを更新
 export function updateCompassBias(compassBias) {
   viewModel.compassBias = compassBias;
-  console.log("compass bias (VM): ", viewModel.compassBias);
 }
 
