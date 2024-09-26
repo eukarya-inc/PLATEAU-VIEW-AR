@@ -348,6 +348,7 @@ function gpsTrackingProcess(pos) {
   // Cesiumの指定はlong, lat, altの順であることに注意
   // const destination = Cesium.Cartesian3.fromDegrees(139.74530681029205, 35.65807022172221, 60); // 東京タワー前
   // const destination = Cesium.Cartesian3.fromDegrees(140.38804838405298, 37.39840050666605, 400); // 郡山駅前
+  // const destination = Cesium.Cartesian3.fromDegrees(139.7406809, 35.6355207, 400); // 高輪ゲートウェイ
   const destination = Cesium.Cartesian3.fromDegrees(long, lat, biasedAlt);
 
   // カメラ座標を更新
@@ -711,7 +712,7 @@ export async function resetTileset(tilesetUrls) {
 
   // 削除されたtilesetをremove
   const removedUrls = oldTilesetUrls.filter(x => !tilesetUrls.includes(x));
-  console.log("removedUrls: ", removedUrls);
+  console.log("removedTilesetUrls: ", removedUrls);
   const removingPrimitives = tilesets.filter(tileset => removedUrls.includes(tileset.url));
   // console.log("removingPrimitives: ", removingPrimitives);
   removingPrimitives.map(removingPrimitive => {
@@ -721,7 +722,7 @@ export async function resetTileset(tilesetUrls) {
 
   // 追加されたtilesetをadd
   const addedUrls = tilesetUrls.filter(x => !oldTilesetUrls.includes(x));
-  console.log("addedUrls: ", addedUrls);
+  console.log("addedTilesetUrls: ", addedUrls);
 
   // PLATEAUのテクスチャ付き3DTilesを表示
   // PLATEAUのデータはここから取得
@@ -774,6 +775,50 @@ export async function resetTileset(tilesetUrls) {
   }).filter(Boolean)).finally(() => {
     oldTilesetUrls = tilesetUrls;
     // console.log("tilesets: ", tilesets);
+  });
+}
+
+// ARViewで表示するCZMLをリセット
+let oldCzmlUrls = [];
+let czmls = [];
+export async function resetCzml(czmlUrls) {
+  if (!cesiumViewer) { return; }
+  // cesiumViewer.scene.primitives.removeAll();
+
+  console.log("oldCzmlUrls: ", oldCzmlUrls);
+  console.log("newCzmlUrls: ", czmlUrls);
+
+  // 削除されたczmlをremove
+  const removedUrls = oldCzmlUrls.filter(x => !czmlUrls.includes(x));
+  console.log("removedCzmlUrls: ", removedUrls);
+  const removingDataSources = czmls.filter(czml => removedUrls.includes(czml.url));
+  removingDataSources.map(removingDataSource => {
+    cesiumViewer.dataSources.remove(removingDataSource, true);
+  });
+  czmls = czmls.filter(czml => !removedUrls.includes(czml.url));
+
+  // 追加されたczmlをadd
+  const addedUrls = czmlUrls.filter(x => !oldCzmlUrls.includes(x));
+  console.log("addedCzmlUrls: ", addedUrls);
+
+  return await Promise.all(addedUrls.map(async czmlUrl => {
+    // console.log(czmlUrl);
+    try {
+      // https://cesium.com/learn/cesiumjs/ref-doc/CzmlDataSource.html
+      const czmlDataSource = await Cesium.CzmlDataSource.load(czmlUrl);
+  
+      console.log("Success loading czml data source.");
+      const result = {url: czmlUrl, dataSource: czmlDataSource};
+      czmls.push(result);
+  
+      cesiumViewer.dataSources.add(czmlDataSource);
+      return result;
+    } catch (error) {
+      console.log(`Error loading czml data source.: ${error}`);
+    }
+  }).filter(Boolean)).finally(() => {
+    oldCzmlUrls = czmlUrls;
+    // console.log("czmls: ", czmls);
   });
 }
 

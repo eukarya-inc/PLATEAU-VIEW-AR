@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import queryString from "query-string";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { resetTileset } from "./ar";
+import { resetTileset, resetCzml } from "./ar";
 import { LayersRenderer, useAddLayer } from "./components/prototypes/layers";
 import { arStartedAtom } from "./components/prototypes/view/states/ar";
 import { useDatasetsByIds } from "./components/shared/graphql";
@@ -85,12 +85,12 @@ export default function DatasetSyncer({...props}) {
   // データセット群が変化したらARで使用可能なデータセットだけにフィルタ・保存して本コンポーネントを再レンダリング
   useEffect(() => {
     // TODO: ここでdatasetのTypeが対応していないものであればアラートポップアップを出し除外する
-    const removedDatasets = datasets.filter(dataset => dataset.type.code !== 'bldg');
-    const filteredDatasets = datasets.filter(dataset => dataset.type.code === 'bldg');
+    const removedDatasets = datasets.filter(dataset => dataset.type.code !== 'bldg' && dataset.type.code !== 'usecase');
+    const filteredDatasets = datasets.filter(dataset => dataset.type.code === 'bldg' || dataset.type.code === 'usecase');
   
     if (removedDatasets.length > 0) {
       const removedNames = removedDatasets.map(item => item.name).join(', ');
-      console.log(`${removedNames} はAR非対応のため非表示になります。`); // ポップアップメッセージを設定
+      console.log(`${removedNames} はAR非対応のため非表示になります。`); // 一旦ログでは出しておく
     }
 
     console.log("New Filterd Datasets: ", filteredDatasets);
@@ -134,36 +134,59 @@ export default function DatasetSyncer({...props}) {
     if (!filteredDatasets) { return; }
 
     // データセット群をタイルセットURL群に変換
-    const tilesetConfigs = filteredDatasets.map(plateauDataset => {
+    const resourceUrls = filteredDatasets.map(plateauDataset => {
       const plateauDatasetItems = plateauDataset.items as PlateauDatasetItem[];
-      // LOD2(テクスチャあり)->LOD2(テクスチャなし)->LOD1の順でフォールバック
-      const tilesetUrlLod2TexItem = plateauDatasetItems.find(({ lod, texture }) => lod == 2 && texture == "TEXTURE")
-      if (tilesetUrlLod2TexItem && tilesetUrlLod2TexItem.url) {
-        return {url: tilesetUrlLod2TexItem.url, id: plateauDataset.id};
-      } else {
-        const tilesetUrlLod2NoneTexItem = plateauDatasetItems.find(({ lod, texture }) => lod == 2 && texture == "NONE")
-        if (tilesetUrlLod2NoneTexItem && tilesetUrlLod2NoneTexItem.url) {
-          return {url: tilesetUrlLod2NoneTexItem.url, id: plateauDataset.id};
+      // CESIUM3DTILESかどうかチェックしLOD2(テクスチャあり)->LOD2(テクスチャなし)->LOD1->テクスチャ・LODを持たないcsecase用3DTilesの順でフォールバック
+      const cesium3dtilesItems = plateauDatasetItems.filter(item => item.format === "CESIUM3DTILES");
+      if (cesium3dtilesItems.length != 0) {
+        const cesium3dtilesLod2TexItem = cesium3dtilesItems.find(({ lod, texture }) => lod == 2 && texture == "TEXTURE");
+        if (cesium3dtilesLod2TexItem && cesium3dtilesLod2TexItem.url) {
+          return {url: cesium3dtilesLod2TexItem.url, id: plateauDataset.id, type:"3dtiles"};
         } else {
-          const tilesetUrlLod1Item = plateauDatasetItems.find(({ lod }) => lod == 1)
-          if (tilesetUrlLod1Item && tilesetUrlLod1Item.url) {
-            return {url: tilesetUrlLod1Item.url, id: plateauDataset.id};
+          const cesium3dtilesLod2NoneTexItem = cesium3dtilesItems.find(({ lod, texture }) => lod == 2 && texture == "NONE");
+          if (cesium3dtilesLod2NoneTexItem && cesium3dtilesLod2NoneTexItem.url) {
+            return {url: cesium3dtilesLod2NoneTexItem.url, id: plateauDataset.id, type:"3dtiles"};
           } else {
-            return null;
+            const cesium3dtilesLod1Item = cesium3dtilesItems.find(({ lod }) => lod == 1);
+            if (cesium3dtilesLod1Item && cesium3dtilesLod1Item.url) {
+              return {url: cesium3dtilesLod1Item.url, id: plateauDataset.id, type:"3dtiles"};
+            } else {
+              // ユースケースの際はitem数が1
+              if (cesium3dtilesItems.length == 1 && cesium3dtilesItems[0]) {
+                const cesium3dtilesUseCaseItem = cesium3dtilesItems[0];
+                return {url: cesium3dtilesUseCaseItem.url, id: plateauDataset.id, type:"3dtiles"};
+              } else {              
+                return null;
+              }
+            }
           }
+        }
+      } else {
+        const czmlItems = plateauDatasetItems.filter(item => item.format === "CZML");
+        // 一旦CZMLの場合はユースケースであると限定してitem数は1であるとする
+        if (czmlItems.length == 1 && czmlItems[0]) {
+          const czmlItem = czmlItems[0];
+          return {url: czmlItem.url, id: plateauDataset.id, type:"czml"};
+        } else {
+          return null;
         }
       }
     }).filter(x => x);
   
+    if (!resourceUrls || !arStarted) { return; }
     // tilesetをリセット
-    if (!tilesetConfigs || !arStarted) { return; }
-    resetTileset(tilesetConfigs.map(t => t.url)).then((tilesets: LoadedTileset[]) => {
+    const tlesetUrls = resourceUrls.filter(x => x.type == "3dtiles");
+    resetTileset(tlesetUrls.map(t => t.url)).then((tilesets: LoadedTileset[]) => {
       setTilesets((prevTilesets) => {
-        const filteredPrevTilesets = prevTilesets.filter(t => tilesetConfigs.find(c => c.id === t.id));
-        const nextTilesets = tilesets.map(t => ({ ...t, id: tilesetConfigs.find(c => c.url === t.url).id }));
+        const filteredPrevTilesets = prevTilesets.filter(t => tlesetUrls.find(c => c.id === t.id));
+        const nextTilesets = tilesets.map(t => ({ ...t, id: tlesetUrls.find(c => c.url === t.url).id }));
         return [...filteredPrevTilesets, ...nextTilesets];
       });
     });
+    // czmlをリセット
+    const czmlUrls = resourceUrls.filter(x => x.type == "czml");
+    resetCzml(czmlUrls.map(t => t.url));
+    // TODO: 表示非表示ボタンの制御が効いていない
   
     return () => {
       // resetTileset([]);
