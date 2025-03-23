@@ -40,6 +40,9 @@ export const useLayer = ({
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // ユースケースから追加したレイヤーはGeneralDatasetLayerなのでこっちが反応する
+    console.log("pow!");
+    console.log("visible: ", visible);
     const layerId = layerIdRef.current;
     if (!layerId) return;
 

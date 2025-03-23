@@ -36,6 +36,7 @@ export type RootLayerAtomParams = {
 export type RootLayerParams = {
   datasetId: string;
   type: LayerType;
+  format: string;
   title: string;
   dataList: DatasetItem[];
   settings: Setting[];
@@ -122,6 +123,7 @@ const findData = (dataList: DatasetItem[], currentDataId: string | undefined) =>
 const createViewLayerWithComponentGroup = (
   datasetId: string,
   type: LayerType,
+  format: string,
   title: string,
   setting: Setting | undefined,
   template: ComponentTemplate | undefined,
@@ -132,8 +134,10 @@ const createViewLayerWithComponentGroup = (
 ): LayerModel => {
   invariant(type);
   return {
+    // ここでtypeがBUILDING_LAYERかUSE_CASE_LAYERかによってcreateBuildingLayerかcreateGeneralDatasetLayerを行ってレイヤーを作成
     ...createViewLayer({
       type,
+      format,
       municipalityCode: "",
       title,
       datasetId,
@@ -162,6 +166,7 @@ const createViewLayerWithComponentGroup = (
 const createRootLayer = ({
   datasetId,
   type,
+  format,
   title,
   dataList,
   settings,
@@ -196,6 +201,7 @@ const createRootLayer = ({
       createViewLayerWithComponentGroup(
         datasetId,
         type,
+        format,
         title,
         setting,
         componentTemplate,
@@ -211,7 +217,14 @@ const createRootLayer = ({
 export const createRootLayerAtom = (params: RootLayerAtomParams): RootLayerConfig => {
   const dataset = params.dataset;
   const dataList = dataset.items as DatasetItem[];
+  // PlateauDatasetType内にはUseCaseも含まれている一方で、UseCaseはGenericDatasetであるとされており、そこの整合性がイマイチ
+  // BUILDING_LAYERやUSE_CASE_LAYERの形で取得
+  // ARではスタイルを当てるために今はdataset.type.codeがusecaseでも強制的にbuildingレイヤーに変換しているが、
+  // それだとGeojsonなどのtilesetではないusecaseもbuildingになってしまいtilesetをセットできないのでスタイルが当てられず表示非表示が切り替えられない。
+  // よって、更にARの場合はここでcreateViewLayerにitemのformatを渡してgeojsonならgeneral、それ以外はbuildingにするように変更している
   const type = datasetTypeLayers[dataset.type.code as PlateauDatasetType];
+  const item = dataset.items[0];
+  const format = item ? item.format : undefined;
 
   const initialSettings = params.settings;
   const initialTemplates = params.templates;
@@ -220,6 +233,7 @@ export const createRootLayerAtom = (params: RootLayerAtomParams): RootLayerConfi
     createRootLayer({
       datasetId: dataset.id,
       type,
+      format: format,
       title: dataset.name,
       dataList,
       settings: initialSettings,
@@ -244,6 +258,7 @@ export const createRootLayerAtom = (params: RootLayerAtomParams): RootLayerConfi
         createRootLayer({
           datasetId: dataset.id,
           type,
+          format: format,
           title: dataset.name,
           dataList,
           settings: settings,
@@ -274,6 +289,7 @@ export const createRootLayerAtom = (params: RootLayerAtomParams): RootLayerConfi
         createRootLayer({
           datasetId: dataset.id,
           type,
+          format: format,
           title: dataset.name,
           dataList,
           settings: get(settingsPrimitiveAtom),
@@ -306,6 +322,7 @@ export const createRootLayerAtom = (params: RootLayerAtomParams): RootLayerConfi
         createViewLayerWithComponentGroup(
           dataset.id,
           type,
+          format,
           dataset.name,
           setting,
           template,
