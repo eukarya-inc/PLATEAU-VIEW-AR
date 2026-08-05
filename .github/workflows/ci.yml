@@ -8,6 +8,10 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2
+        with:
+          egress-policy: audit
       - uses: actions/setup-node@v4
         with:
           node-version: 18.x
@@ -37,6 +41,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2
+        with:
+          egress-policy: audit
       - name: Dispatch deployment
         uses: peter-evans/repository-dispatch@v2
         with:
